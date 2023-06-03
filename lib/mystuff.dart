@@ -1,11 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:moapp_teamprj/product.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:moapp_teamprj/profile.dart';
-import 'home.dart';
 import 'main.dart';
 
 late List<dynamic> products = <dynamic>[];
@@ -22,25 +19,25 @@ late List<dynamic> studyHeart = <dynamic>[];
 late List<dynamic> contained = <dynamic>[]; // true false
 late List<dynamic> idx = <dynamic>[]; // userHeart와 studyHeart 겹치는 index
 
-class WishListPage extends StatelessWidget {
-  WishListPage({Key? key}) : super(key: key);
+class MyStuffPage extends StatelessWidget {
+  MyStuffPage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: _WishListPageState(),
+      home: _MyStuffPageState(),
     );
   }
 }
 
-class _WishListPageState extends StatefulWidget {
-  const _WishListPageState({Key? key}) : super(key: key);
+class _MyStuffPageState extends StatefulWidget {
+  const _MyStuffPageState({Key? key}) : super(key: key);
 
   @override
-  State<_WishListPageState> createState() => _WishListPageState1();
+  State<_MyStuffPageState> createState() => _MyStuffPageState1();
 }
 
-class _WishListPageState1 extends State<_WishListPageState> {
+class _MyStuffPageState1 extends State<_MyStuffPageState> {
   int _currentIndex = 0;
   final TextEditingController _search = TextEditingController();
 
@@ -49,8 +46,7 @@ class _WishListPageState1 extends State<_WishListPageState> {
       _currentIndex = index;
       if (_currentIndex == 0) {
         print('go to home');
-        Navigator.of(context).pushNamedAndRemoveUntil(
-            '/', (Route<dynamic> route) => false);
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
       } else if (_currentIndex == 1) {
         print('go to heart');
       } else if (_currentIndex == 2) {
@@ -65,6 +61,7 @@ class _WishListPageState1 extends State<_WishListPageState> {
     return Scaffold(
       body: _buildBody2(context),
     );
+
   }
 
   Widget _buildBody2(BuildContext context) {
@@ -72,8 +69,7 @@ class _WishListPageState1 extends State<_WishListPageState> {
     print('my display name: ${auth.currentUser!.displayName}\n');
 
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('user').doc(
-          auth.currentUser!.displayName.toString()).snapshots(),
+      stream: FirebaseFirestore.instance.collection('user').doc(auth.currentUser!.displayName.toString()).snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return LinearProgressIndicator();
         return _buildBody(context, snapshot);
@@ -81,8 +77,7 @@ class _WishListPageState1 extends State<_WishListPageState> {
     );
   }
 
-  Widget _buildBody(BuildContext context,
-      AsyncSnapshot<DocumentSnapshot> userSnapshot) {
+  Widget _buildBody(BuildContext context, AsyncSnapshot<DocumentSnapshot> userSnapshot) {
     FirebaseAuth auth = FirebaseAuth.instance;
     print('userSnapshot ???????? ${userSnapshot}');
     return StreamBuilder<QuerySnapshot>(
@@ -94,8 +89,7 @@ class _WishListPageState1 extends State<_WishListPageState> {
     );
   }
 
-  Widget _buildList(BuildContext context, List<DocumentSnapshot> snapshot,
-      AsyncSnapshot<DocumentSnapshot> userSnapshot) {
+  Widget _buildList(BuildContext context, List<DocumentSnapshot> snapshot, AsyncSnapshot<DocumentSnapshot> userSnapshot) {
     FirebaseAuth auth = FirebaseAuth.instance;
 
     snapshot.forEach((element) {
@@ -110,7 +104,7 @@ class _WishListPageState1 extends State<_WishListPageState> {
       }
     });
 
-    userSnapshot.data!["wishlist"].forEach((element) {
+    userSnapshot.data!["addlist"].forEach((element) {
       for (int i = 0; i < name.length; i++) {
         if (name[i].compareTo(element) == 0) {
           if (!userWish.contains(name[i])) {
@@ -121,18 +115,10 @@ class _WishListPageState1 extends State<_WishListPageState> {
     });
 
     idx = findIndex(context, name, userWish);
-    int current_index = 2;
-    final List<Widget> _children = [HomePage(), WishListPage(), ProfilePage()];
-    double width = MediaQuery
-
-        .of(context)
-        .size
-        .width * 0.55;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('My Wishlist',
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),),
+        title: Text('My Orderlist', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),),
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back,
@@ -142,49 +128,20 @@ class _WishListPageState1 extends State<_WishListPageState> {
           },
         ),
       ),
-      body: GridView.builder(
+      body: ListView.builder(
         itemCount: idx.length,
         itemBuilder: (context, index) {
           return InkWell(
             child: Card(
-              child: Column(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  SizedBox(width: 100,),
                   Padding(
                     padding: const EdgeInsets.all(10),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                            children: [
-                              SizedBox(width: 100,),
-                              IconButton(
-                                icon: Icon(
-                                  contained[index] ? Icons.favorite : Icons
-                                      .favorite_border,
-                                  color: contained[index] ? Colors.red : null,
-                                  semanticLabel: contained[index]
-                                      ? 'Remove from saved'
-                                      : 'Save',),
-                                onPressed: () {
-                                  contained.removeAt(index);
-
-                                  final heartCollectionReference = FirebaseFirestore
-                                      .instance.collection(
-                                      "user").doc(
-                                      auth.currentUser!.displayName.toString());
-                                  String sName = userWish[index];
-                                  heartCollectionReference.update(
-                                      {
-                                        'wishlist': FieldValue.arrayRemove(
-                                            [sName])
-                                      });
-                                  userWish.removeAt(index);
-                                },
-                              ),
-                            ]
-                        ),
-                        SizedBox(height: 30,),
                         Text(
                           userWish[index],
                           style: TextStyle(
@@ -196,6 +153,14 @@ class _WishListPageState1 extends State<_WishListPageState> {
                         Text('${price[idx[index]]}'),
                         SizedBox(height: 5,),
                         Text('${category[idx[index]]}'),
+                        // SizedBox(
+                        //   width: width,
+                        //   child: Text(
+                        //     '${member[idx[index]]}/${number[idx[index]]}',
+                        //     style: TextStyle(
+                        //         fontSize: 15, color: Colors.grey[500]),
+                        //   ),
+                        // ),
                       ], //children
                     ),
                   ),
@@ -204,45 +169,29 @@ class _WishListPageState1 extends State<_WishListPageState> {
             ),
           );
         },
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-        ),
       ),
 
-      bottomNavigationBar: Theme(
-        data: Theme.of(context).copyWith(canvasColor: Colors.white),
-        child:
-        BottomNavigationBar(
-          currentIndex: current_index,
-          onTap: (index) {
-            if (index == 0) {
-              Navigator.of(context).pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
-              print('home home home');
-            }
-            else if (index == 2) {
-              Navigator.of(context).pushNamedAndRemoveUntil('/profile', (Route<dynamic> route) => false);
-            }
-          },
-          items: [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home, color: Colors.grey),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-                icon: Icon(Icons.favorite, color: Color(0xff485ed9),),
-                label: 'Heart'
-            ),
-            BottomNavigationBarItem(
-                icon: Icon(Icons.account_circle_outlined, color: Colors.grey),
-                label: 'Profile'
-            ),
-          ],
-        ),
-      ),);
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: _onItemTapped, // 항목을 눌렀을 때 호출될 콜백 함수
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite),
+            label: 'Heart',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
   }
-
 }
-
 
 List<dynamic> findIndex(BuildContext context, List<dynamic> name, List<dynamic> userWish) {
   List<dynamic> index = <dynamic>[];

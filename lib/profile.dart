@@ -10,6 +10,7 @@ Future<String> getGoogleProfilePhotoUrl() async {
   final User? user = FirebaseAuth.instance.currentUser;
   username = user!.displayName!;
 
+
   if (user != null) {
     return user.photoURL ?? '';
   } else {
@@ -26,6 +27,22 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   late Future<String> _photoUrl;
+  int _currentIndex = 2;
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _currentIndex = index;
+      if (_currentIndex == 0) {
+        print('go to home');
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
+      } else if (_currentIndex == 1) {
+        print('go to heart');
+      } else if (_currentIndex == 2) {
+        print('go to profile');
+        Navigator.pushNamed(context, '/profile');
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -136,6 +153,8 @@ class _ProfilePageState extends State<ProfilePage> {
                           GestureDetector(
                               onTap: () {
                                 print('To Stufflist');
+                                Navigator.pushNamed(context, '/mystuff');
+
                               },
                               child: Container(
                                 width: 370,
@@ -174,6 +193,24 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: _onItemTapped, // 항목을 눌렀을 때 호출될 콜백 함수
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite),
+            label: 'Heart',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
       ),
     );
   }

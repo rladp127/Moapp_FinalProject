@@ -9,6 +9,7 @@ import 'donation.dart';
 import 'home.dart';
 import 'login.dart';
 import 'myorder.dart';
+import 'mystuff.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -17,7 +18,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'HandongSell',
-      initialRoute: '/login',
+      initialRoute: '/',
       routes: {
         '/login': (BuildContext context) => const LoginPage(),
         '/profile': (BuildContext context) => ProfilePage(),
@@ -28,6 +29,7 @@ class MyApp extends StatelessWidget {
         '/wish': (BuildContext context) => WishListPage(),
         '/donation': (BuildContext context) => DonationPage(),
         '/': (BuildContext context) => HomePage(),
+        '/mystuff' : (BuildContext context) => MyStuffPage(),
       },
       theme: ThemeData.light(useMaterial3: true),
     );

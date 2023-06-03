@@ -63,7 +63,7 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     InkWell(
                       onTap: () {
-                        Navigator.pushNamed(context, '/donate');
+                        Navigator.pushNamed(context, '/donation');
                       },
                       child: Container(
                         height: 300,
@@ -199,7 +199,7 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     InkWell(
                       onTap: () {
-                        Navigator.pushNamed(context, '/donate');
+                        Navigator.pushNamed(context, '/add');
                       },
                       child: Center(
                         child: Column(
