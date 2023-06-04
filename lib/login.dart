@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -80,7 +81,17 @@ class _LoginPageState extends State<LoginPage> {
                   },
                 ),
                 ElevatedButton(
-                    onPressed: signInWithGoogle,
+                    onPressed: () {
+                      signInWithGoogle;
+                      FirebaseFirestore.instance
+                          .collection('user')
+                          .doc(username)
+                          .set({
+                        'addlist': [],
+                        'orderlist': [],
+                        'wishlist': [],
+                      });
+                    },
                     child: Text('Sign in with Google')
                 ),
               ],
