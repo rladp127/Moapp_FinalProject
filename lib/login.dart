@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -10,22 +12,17 @@ class LoginPage extends StatefulWidget {
   _LoginPageState createState() => _LoginPageState();
 }
 int n = 0;
-String username = '';
+String? username;
 
 Future<UserCredential> signInWithGoogle() async {
-  // Trigger the authentication flow
   final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-
-  // Obtain the auth details from the request
   final GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
 
-  // Create a new credential
   final credential = GoogleAuthProvider.credential(
     accessToken: googleAuth?.accessToken,
     idToken: googleAuth?.idToken,
   );
 
-  // Once signed in, return the UserCredential
   return await FirebaseAuth.instance.signInWithCredential(credential);
 }
 
@@ -34,7 +31,6 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     FirebaseAuth.instance.authStateChanges().listen((user) {
-      print(FirebaseAuth.instance.currentUser);
       if (user != null) {
         username = user.displayName!;
         n = 1;
@@ -76,28 +72,92 @@ class _LoginPageState extends State<LoginPage> {
                 ElevatedButton(
                   child: const Text('already Sign In with Google '),
                   onPressed: () {
-                    if (username != '')
+                    if (username! != '')
                       Navigator.pop(context);
                   },
                 ),
                 ElevatedButton(
-                    onPressed: () {
-                      signInWithGoogle;
-                      FirebaseFirestore.instance
-                          .collection('user')
-                          .doc(username)
-                          .set({
-                        'addlist': [],
-                        'orderlist': [],
-                        'wishlist': [],
-                      });
-                    },
+                    onPressed: signInWithGoogle,
                     child: Text('Sign in with Google')
                 ),
+                // ElevatedButton(
+                //     onPressed: () {
+                //       signInWithGoogle;
+                //     //   FirebaseFirestore.instance
+                //     //       .collection('user')
+                //     //       .doc(username)
+                //     //       .set({
+                //     //     'addlist': [],
+                //     //     'orderlist': [],
+                //     //     'wishlist': [],
+                //     //   });
+                //     },
+                //     child: Text('Sign in with Google')
+                // ),
               ],
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class SplashScreen extends StatefulWidget {
+  @override
+  _SplashScreenState createState() => new _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin{
+  late AnimationController _controller;
+  late Animation _animation;
+
+  startTime() async {
+    var _duration = new Duration(seconds: 4);
+    return new Timer(_duration, navigationPage);
+  }
+
+  void navigationPage() {
+    Navigator.of(context).pushReplacementNamed('/HomeScreen');
+  }
+
+  @override
+  void initState() {
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(seconds: 2),
+    );
+    //Implement animation here
+    _animation = Tween(
+      begin: 1.0,
+      end: 0.0,
+    ).animate(_controller);
+    super.initState();
+    startTime();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return new Scaffold(
+      body: Container(
+          child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset('image/start1.png',
+                    width: 680,
+                    height: 683,
+                    fit: BoxFit.fill,
+                  ),
+                ],
+              )
+          )
       ),
     );
   }

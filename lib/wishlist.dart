@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:moapp_teamprj/product.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +17,8 @@ late List<dynamic> name = <dynamic>[];
 late List<dynamic> owner = <dynamic>[];
 late List<dynamic> price = <dynamic>[];
 late List<dynamic> url = <dynamic>[];
+late List<dynamic> buy = <dynamic>[];
+late List<dynamic> productId = <dynamic>[];
 
 late List<dynamic> userWish = <dynamic>[];
 late List<dynamic> studyHeart = <dynamic>[];
@@ -27,8 +30,8 @@ class WishListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: _WishListPageState(),
+    return Scaffold(
+      body: _WishListPageState(),
     );
   }
 }
@@ -41,25 +44,6 @@ class _WishListPageState extends StatefulWidget {
 }
 
 class _WishListPageState1 extends State<_WishListPageState> {
-  int _currentIndex = 0;
-  final TextEditingController _search = TextEditingController();
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-      if (_currentIndex == 0) {
-        print('go to home');
-        Navigator.of(context).pushNamedAndRemoveUntil(
-            '/', (Route<dynamic> route) => false);
-      } else if (_currentIndex == 1) {
-        print('go to heart');
-      } else if (_currentIndex == 2) {
-        print('go to profile');
-        Navigator.pushNamed(context, '/profile');
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,12 +52,29 @@ class _WishListPageState1 extends State<_WishListPageState> {
   }
 
   Widget _buildBody2(BuildContext context) {
+    int _currentIndex = 0;
+    final TextEditingController _search = TextEditingController();
+
+    void _onItemTapped(int index) {
+      setState(() {
+        _currentIndex = index;
+        if (_currentIndex == 0) {
+          Navigator.of(context)
+              .pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
+        } else if (_currentIndex == 1) {
+        } else if (_currentIndex == 2) {
+          Navigator.pushNamed(context, '/profile');
+        }
+      });
+    }
+
     FirebaseAuth auth = FirebaseAuth.instance;
-    print('my display name: ${auth.currentUser!.displayName}\n');
 
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('user').doc(
-          auth.currentUser!.displayName.toString()).snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('user')
+          .doc(auth.currentUser!.displayName.toString())
+          .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return LinearProgressIndicator();
         return _buildBody(context, snapshot);
@@ -81,10 +82,9 @@ class _WishListPageState1 extends State<_WishListPageState> {
     );
   }
 
-  Widget _buildBody(BuildContext context,
-      AsyncSnapshot<DocumentSnapshot> userSnapshot) {
+  Widget _buildBody(
+      BuildContext context, AsyncSnapshot<DocumentSnapshot> userSnapshot) {
     FirebaseAuth auth = FirebaseAuth.instance;
-    print('userSnapshot ???????? ${userSnapshot}');
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('product').snapshots(),
       builder: (context, snapshot) {
@@ -100,6 +100,8 @@ class _WishListPageState1 extends State<_WishListPageState> {
 
     snapshot.forEach((element) {
       {
+        productId.add(element.id);
+
         name.add(element["name"]);
         price.add(element["price"]);
         location.add(element["location"]);
@@ -107,6 +109,7 @@ class _WishListPageState1 extends State<_WishListPageState> {
         owner.add(element["owner"]);
         url.add(element["url"]);
         category.add(element["category"]);
+        buy.add(element["buy"]);
       }
     });
 
@@ -122,17 +125,26 @@ class _WishListPageState1 extends State<_WishListPageState> {
 
     idx = findIndex(context, name, userWish);
     int current_index = 2;
-    final List<Widget> _children = [HomePage(), WishListPage(), ProfilePage()];
-    double width = MediaQuery
+    FirebaseAuth _auth = FirebaseAuth.instance;
 
-        .of(context)
-        .size
-        .width * 0.55;
+    Future<String> getIamge(String name) async {
+      final storage = FirebaseStorage.instance;
+      final reference = storage.ref().child(name);
+
+      try {
+        final url = await reference.getDownloadURL();
+        return url;
+      } catch (e) {
+        return 'https://handong.edu/site/handong/res/img/logo.png';
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('My Wishlist',
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),),
+        title: Text(
+          'My Wishlist',
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+        ),
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back,
@@ -146,6 +158,10 @@ class _WishListPageState1 extends State<_WishListPageState> {
         itemCount: idx.length,
         itemBuilder: (context, index) {
           return InkWell(
+            onTap: () {
+              Navigator.pushNamed(context, '/detail',
+                arguments: {'docId': productId[idx[index]]});
+            },
             child: Card(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,36 +171,65 @@ class _WishListPageState1 extends State<_WishListPageState> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                            children: [
-                              SizedBox(width: 100,),
-                              IconButton(
-                                icon: Icon(
-                                  contained[index] ? Icons.favorite : Icons
-                                      .favorite_border,
-                                  color: contained[index] ? Colors.red : null,
-                                  semanticLabel: contained[index]
-                                      ? 'Remove from saved'
-                                      : 'Save',),
-                                onPressed: () {
-                                  contained.removeAt(index);
-
-                                  final heartCollectionReference = FirebaseFirestore
-                                      .instance.collection(
-                                      "user").doc(
-                                      auth.currentUser!.displayName.toString());
-                                  String sName = userWish[index];
-                                  heartCollectionReference.update(
-                                      {
-                                        'wishlist': FieldValue.arrayRemove(
-                                            [sName])
-                                      });
-                                  userWish.removeAt(index);
+                        Row(children: [
+                          Container(
+                              width: 100,
+                              height: 40,
+                              child: FutureBuilder(
+                                future: getIamge('images/${userWish[index]}'),
+                                builder:
+                                    (context, AsyncSnapshot<String> snapshot) {
+                                  if (snapshot.hasData) {
+                                    return Image.network(snapshot.data!);
+                                  } else if (snapshot.hasError) {
+                                    return Text('Error: ${snapshot.error}');
+                                  } else {
+                                    return Image.asset(
+                                      'assets/logo.png',
+                                      fit: BoxFit.fill,
+                                      width: 700,
+                                    );
+                                  }
                                 },
-                              ),
-                            ]
+                              )),
+                          IconButton(
+                            icon: Icon(
+                              contained[index]
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color: contained[index] ? Colors.red : null,
+                              semanticLabel: contained[index]
+                                  ? 'Remove from saved'
+                                  : 'Save',
+                            ),
+                            onPressed: () {
+                              contained.removeAt(index);
+
+                              final heartCollectionReference = FirebaseFirestore
+                                  .instance
+                                  .collection("user")
+                                  .doc(
+                                  auth.currentUser!.displayName.toString());
+                              String sName = userWish[index];
+                              heartCollectionReference.update({
+                                'wishlist': FieldValue.arrayRemove([sName])
+                              });
+
+                              FirebaseFirestore.instance
+                                  .collection('product')
+                                  .doc(productId[idx[index]])
+                                  .update({
+                                'likeUser': FieldValue.arrayRemove([
+                                  _auth.currentUser!.uid.toString()
+                                ]),
+                              });
+                              userWish.removeAt(index);
+                            },
+                          ),
+                        ]),
+                        SizedBox(
+                          height: 30,
                         ),
-                        SizedBox(height: 30,),
                         Text(
                           userWish[index],
                           style: TextStyle(
@@ -192,10 +237,12 @@ class _WishListPageState1 extends State<_WishListPageState> {
                               fontWeight: FontWeight.w500,
                               color: Colors.black),
                         ),
-                        SizedBox(height: 10,),
                         Text('${price[idx[index]]}'),
-                        SizedBox(height: 5,),
+                        SizedBox(
+                          height: 6,
+                        ),
                         Text('${category[idx[index]]}'),
+                        if (buy[idx[index]]) Text('판매 완료') else Text('판매중'),
                       ], //children
                     ),
                   ),
@@ -205,22 +252,21 @@ class _WishListPageState1 extends State<_WishListPageState> {
           );
         },
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-        ),
+            crossAxisCount: 2,
+            childAspectRatio: 0.9, // Increase this value to make items wider
+          ),
       ),
-
       bottomNavigationBar: Theme(
         data: Theme.of(context).copyWith(canvasColor: Colors.white),
-        child:
-        BottomNavigationBar(
+        child: BottomNavigationBar(
           currentIndex: current_index,
           onTap: (index) {
             if (index == 0) {
-              Navigator.of(context).pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
-              print('home home home');
-            }
-            else if (index == 2) {
-              Navigator.of(context).pushNamedAndRemoveUntil('/profile', (Route<dynamic> route) => false);
+              Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/', (Route<dynamic> route) => false);
+            } else if (index == 2) {
+              Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/profile', (Route<dynamic> route) => false);
             }
           },
           items: [
@@ -229,24 +275,25 @@ class _WishListPageState1 extends State<_WishListPageState> {
               label: 'Home',
             ),
             BottomNavigationBarItem(
-                icon: Icon(Icons.favorite, color: Color(0xff485ed9),),
-                label: 'Heart'
-            ),
+                icon: Icon(
+                  Icons.favorite,
+                  color: Color(0xff485ed9),
+                ),
+                label: 'Heart'),
             BottomNavigationBarItem(
                 icon: Icon(Icons.account_circle_outlined, color: Colors.grey),
-                label: 'Profile'
-            ),
+                label: 'Profile'),
           ],
         ),
-      ),);
+      ),
+    );
   }
-
 }
 
-
-List<dynamic> findIndex(BuildContext context, List<dynamic> name, List<dynamic> userWish) {
+List<dynamic> findIndex(
+    BuildContext context, List<dynamic> name, List<dynamic> userWish) {
   List<dynamic> index = <dynamic>[];
-  for(int i=0; i<userWish.length; i++) {
+  for (int i = 0; i < userWish.length; i++) {
     contained.add(true);
     index.add(name.indexOf(userWish[i]));
   }

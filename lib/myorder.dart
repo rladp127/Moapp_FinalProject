@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'main.dart';
@@ -13,6 +14,9 @@ late List<dynamic> name = <dynamic>[];
 late List<dynamic> owner = <dynamic>[];
 late List<dynamic> price = <dynamic>[];
 late List<dynamic> url = <dynamic>[];
+late List<dynamic> buy = <dynamic>[];
+late List<dynamic> productId = <dynamic>[];
+
 
 late List<dynamic> userWish = <dynamic>[];
 late List<dynamic> studyHeart = <dynamic>[];
@@ -24,8 +28,8 @@ class MyOrderPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: _MyOrderPageState(),
+    return Scaffold(
+      body: _MyOrderPageState(),
     );
   }
 }
@@ -45,12 +49,10 @@ class _MyOrderPageState1 extends State<_MyOrderPageState> {
     setState(() {
       _currentIndex = index;
       if (_currentIndex == 0) {
-        print('go to home');
-        Navigator.of(context).pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
+        Navigator.of(context)
+            .pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
       } else if (_currentIndex == 1) {
-        print('go to heart');
       } else if (_currentIndex == 2) {
-        print('go to profile');
         Navigator.pushNamed(context, '/profile');
       }
     });
@@ -61,15 +63,16 @@ class _MyOrderPageState1 extends State<_MyOrderPageState> {
     return Scaffold(
       body: _buildBody2(context),
     );
-
   }
 
   Widget _buildBody2(BuildContext context) {
     FirebaseAuth auth = FirebaseAuth.instance;
-    print('my display name: ${auth.currentUser!.displayName}\n');
 
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('user').doc(auth.currentUser!.displayName.toString()).snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('user')
+          .doc(auth.currentUser!.displayName.toString())
+          .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return LinearProgressIndicator();
         return _buildBody(context, snapshot);
@@ -77,9 +80,9 @@ class _MyOrderPageState1 extends State<_MyOrderPageState> {
     );
   }
 
-  Widget _buildBody(BuildContext context, AsyncSnapshot<DocumentSnapshot> userSnapshot) {
+  Widget _buildBody(
+      BuildContext context, AsyncSnapshot<DocumentSnapshot> userSnapshot) {
     FirebaseAuth auth = FirebaseAuth.instance;
-    print('userSnapshot ???????? ${userSnapshot}');
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('product').snapshots(),
       builder: (context, snapshot) {
@@ -89,11 +92,14 @@ class _MyOrderPageState1 extends State<_MyOrderPageState> {
     );
   }
 
-  Widget _buildList(BuildContext context, List<DocumentSnapshot> snapshot, AsyncSnapshot<DocumentSnapshot> userSnapshot) {
+  Widget _buildList(BuildContext context, List<DocumentSnapshot> snapshot,
+      AsyncSnapshot<DocumentSnapshot> userSnapshot) {
     FirebaseAuth auth = FirebaseAuth.instance;
 
     snapshot.forEach((element) {
       {
+        productId.add(element.id);
+
         name.add(element["name"]);
         price.add(element["price"]);
         location.add(element["location"]);
@@ -101,6 +107,7 @@ class _MyOrderPageState1 extends State<_MyOrderPageState> {
         owner.add(element["owner"]);
         url.add(element["url"]);
         category.add(element["category"]);
+        buy.add(element["buy"]);
       }
     });
 
@@ -116,9 +123,24 @@ class _MyOrderPageState1 extends State<_MyOrderPageState> {
 
     idx = findIndex(context, name, userWish);
 
+    Future<String> getIamge(String name) async {
+      final storage = FirebaseStorage.instance;
+      final reference = storage.ref().child(name);
+
+      try {
+        final url = await reference.getDownloadURL();
+        return url;
+      } catch (e) {
+        return 'https://handong.edu/site/handong/res/img/logo.png';
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('My Orderlist', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),),
+        title: Text(
+          'My Orderlist',
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+        ),
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back,
@@ -132,11 +154,33 @@ class _MyOrderPageState1 extends State<_MyOrderPageState> {
         itemCount: idx.length,
         itemBuilder: (context, index) {
           return InkWell(
+            onTap: () {
+              Navigator.pushNamed(context, '/detail',
+                  arguments: {'docId': productId[idx[index]]});
+            },
             child: Card(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(width: 100,),
+                  Container(
+                      width: 100,
+                      height: 100,
+                      child: FutureBuilder(
+                        future: getIamge('images/${userWish[index]}'),
+                        builder: (context, AsyncSnapshot<String> snapshot) {
+                          if (snapshot.hasData) {
+                            return Image.network(snapshot.data!);
+                          } else if (snapshot.hasError) {
+                            return Text('Error: ${snapshot.error}');
+                          } else {
+                            return Image.asset(
+                              'assets/logo.png',
+                              fit: BoxFit.fill,
+                              width: 700,
+                            );
+                          }
+                        },
+                      )),
                   Padding(
                     padding: const EdgeInsets.all(10),
                     child: Column(
@@ -149,10 +193,15 @@ class _MyOrderPageState1 extends State<_MyOrderPageState> {
                               fontWeight: FontWeight.w500,
                               color: Colors.black),
                         ),
-                        SizedBox(height: 10,),
+                        SizedBox(
+                          height: 10,
+                        ),
                         Text('${price[idx[index]]}'),
-                        SizedBox(height: 5,),
+                        SizedBox(
+                          height: 7,
+                        ),
                         Text('${category[idx[index]]}'),
+                        if (buy[idx[index]]) Text('판매 완료') else Text('판매중')
                         // SizedBox(
                         //   width: width,
                         //   child: Text(
@@ -170,7 +219,6 @@ class _MyOrderPageState1 extends State<_MyOrderPageState> {
           );
         },
       ),
-
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onItemTapped, // 항목을 눌렀을 때 호출될 콜백 함수
@@ -193,9 +241,10 @@ class _MyOrderPageState1 extends State<_MyOrderPageState> {
   }
 }
 
-List<dynamic> findIndex(BuildContext context, List<dynamic> name, List<dynamic> userWish) {
+List<dynamic> findIndex(
+    BuildContext context, List<dynamic> name, List<dynamic> userWish) {
   List<dynamic> index = <dynamic>[];
-  for(int i=0; i<userWish.length; i++) {
+  for (int i = 0; i < userWish.length; i++) {
     contained.add(true);
     index.add(name.indexOf(userWish[i]));
   }

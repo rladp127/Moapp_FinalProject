@@ -43,8 +43,11 @@ dependencies:
   firebase_storage: ^11.2.2
   url_launcher: ^6.1.11
   firebase_auth: ^4.6.2
-  flutter_native_splash: ^2.2.19
   lottie: ^2.4.0
+  fl_chart: ^0.62.0
+  google_mlkit_text_recognition: ^0.8.1
+  google_maps_flutter: ^2.2.8
+  animated_text_kit: ^4.2.2
 
 dev_dependencies:
   flutter_test:

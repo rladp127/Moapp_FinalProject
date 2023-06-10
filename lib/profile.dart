@@ -33,13 +33,10 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() {
       _currentIndex = index;
       if (_currentIndex == 0) {
-        print('go to home');
         Navigator.of(context).pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
       } else if (_currentIndex == 1) {
-        print('go to heart');
+        Navigator.of(context).pushNamedAndRemoveUntil('/wish', (Route<dynamic> route) => false);
       } else if (_currentIndex == 2) {
-        print('go to profile');
-        Navigator.pushNamed(context, '/profile');
       }
     });
   }
@@ -65,7 +62,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 await Firebase.initializeApp();
                 try {
                   await FirebaseAuth.instance.signOut();
-                  print("Success");
                   Navigator.pushNamed(context, '/login');
                 } catch (e) {
                   print(e.toString());
@@ -119,7 +115,6 @@ class _ProfilePageState extends State<ProfilePage> {
                           SizedBox(height: 40,),
                           GestureDetector(
                             onTap: () {
-                              print('To OrderList');
                               Navigator.pushNamed(context, '/myorder');
                             },
                             child: Container(
@@ -152,9 +147,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           SizedBox(height: 20,),
                           GestureDetector(
                               onTap: () {
-                                print('To Stufflist');
                                 Navigator.pushNamed(context, '/mystuff');
-
                               },
                               child: Container(
                                 width: 370,

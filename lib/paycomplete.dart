@@ -14,6 +14,20 @@ class PayCompletePage extends StatefulWidget {
 }
 
 class _PayCompletePageState extends State<PayCompletePage> {
+  late final docId;
+  late final docName;
+  FirebaseAuth auth = FirebaseAuth.instance;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final arguments = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;
+    if (arguments != null) {
+      docId = arguments['docId'];
+      docName = arguments['name'];
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,8 +49,27 @@ class _PayCompletePageState extends State<PayCompletePage> {
                 SizedBox(height: 50),
                 ElevatedButton(
                   onPressed: () {
-                    print('Return Home');
-                    Navigator.pushNamed(context, '/home'); // TODO
+                    FirebaseFirestore.instance
+                        .collection('product')
+                        .doc(docId)
+                        .update({
+                      'buy': true,
+                    });
+
+                    FirebaseFirestore.instance
+                        .collection('user')
+                        .doc(auth.currentUser!.displayName)
+                        .update({
+                      'orderlist': FieldValue.arrayUnion(
+                          [docName]),
+                    });
+                    // Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+                    // Navigator.pushNamed(context, '/');
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/',
+                          (route) => route.settings.name == '/',
+                    );
                   },
                   child: Text('   Return Home   ', style: TextStyle(color: Colors.deepPurple, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(

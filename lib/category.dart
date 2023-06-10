@@ -37,6 +37,7 @@ class _CategoryPageState extends StatefulWidget {
 
   @override
   State<_CategoryPageState> createState() => _CategoryPageState1();
+
 }
 
 class _CategoryPageState1 extends State<_CategoryPageState> {
@@ -49,7 +50,6 @@ class _CategoryPageState1 extends State<_CategoryPageState> {
     final Map arguments = ModalRoute.of(context)?.settings.arguments as Map;
     if (arguments != null) {
       category = arguments["category"] as String;
-      print("===> category:" + category);
     }
   }
 
@@ -61,11 +61,6 @@ class _CategoryPageState1 extends State<_CategoryPageState> {
   }
 
   Widget _buildBody2(BuildContext context) {
-    final TextEditingController _search = TextEditingController();
-
-
-    FirebaseAuth auth = FirebaseAuth.instance;
-    print('my display name: ${auth.currentUser!.displayName}\n');
 
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('product').snapshots(),
@@ -96,11 +91,6 @@ class _CategoryPageState1 extends State<_CategoryPageState> {
       }
     });
 
-    print("category🥰 productId: " + productId.toString());
-    print("likeUser👍 " + likeUser.toString());
-
-    int current_index = 2;
-    final List<Widget> _children = [HomePage(), WishListPage(), ProfilePage()];
 
     Future<String> getIamge(String name) async {
       final storage = FirebaseStorage.instance;
@@ -110,7 +100,6 @@ class _CategoryPageState1 extends State<_CategoryPageState> {
         final url = await reference.getDownloadURL();
         return url;
       } catch (e) {
-        print('Failed to load image: $e');
         return 'https://handong.edu/site/handong/res/img/logo.png';
       }
     }
@@ -120,15 +109,12 @@ class _CategoryPageState1 extends State<_CategoryPageState> {
       setState(() {
         _currentIndex = index;
         if (_currentIndex == 0) {
-          print('go to home');
           Navigator.of(context)
               .pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
         } else if (_currentIndex == 1) {
-          print('go to heart');
           Navigator.of(context)
               .pushNamedAndRemoveUntil('/wish', (Route<dynamic> route) => false);
         } else if (_currentIndex == 2) {
-          print('go to profile');
           Navigator.of(context)
               .pushNamedAndRemoveUntil('/profile', (Route<dynamic> route) => false);
         }
@@ -146,6 +132,15 @@ class _CategoryPageState1 extends State<_CategoryPageState> {
             Icons.arrow_back,
           ),
           onPressed: () {
+            productId = [];
+            detail = [];
+            location= [];
+            name= [];
+            likeUser= [];
+            price= [];
+            url= [];
+            buy= [];
+            userWish= [];
             Navigator.pop(context);
           },
         ),
@@ -155,7 +150,6 @@ class _CategoryPageState1 extends State<_CategoryPageState> {
         itemBuilder: (context, index) {
           return InkWell(
             onTap: () {
-              print('${productId[index]}');
               Navigator.pushNamed(context, '/detail',
                   arguments: {'docId': productId[index]});
 

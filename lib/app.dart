@@ -9,6 +9,7 @@ import 'add.dart';
 import 'category.dart';
 import 'detail.dart';
 import 'donation.dart';
+import 'edit.dart';
 import 'home.dart';
 import 'login.dart';
 import 'myorder.dart';
@@ -38,6 +39,7 @@ class MyApp extends StatelessWidget {
         '/mystuff' : (BuildContext context) => MyStuffPage(),
         '/detail' : (context) => DetailPage(),
         '/category' : (BuildContext context) => CategoryPage(),
+        '/edit': (BuildContext context) => EditPage(),
       },
       theme: ThemeData.light(useMaterial3: true),
     );

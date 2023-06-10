@@ -2,6 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+
+var student = [36.10248912130572, 129.38941396568254];
+var chapel = [36.10430542742288, 129.39038773873145];
+var yuya = [36.080521649536884, 129.39952335287012];
+var e1 = [36.080521649536884, 129.39952335287012];
 
 class DetailPage extends StatefulWidget {
   const DetailPage({Key? key}) : super(key: key);
@@ -20,22 +26,27 @@ String? getCurrentUserUid() {
 
 class _DetailPageState extends State<DetailPage> {
   int _currentIndex = 0;
+  late GoogleMapController mapController;
+  List<Marker> _markers = [];
   late final docId;
   FirebaseAuth _auth = FirebaseAuth.instance;
   late List<dynamic>? likeUser = <dynamic>[];
   late List<String> wishlist = <String>[];
 
+  late LatLng _center = LatLng(36.10147564919173, 129.39098752933234);
+
+  void _onMapCreated(GoogleMapController controller) {
+    mapController = controller;
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _currentIndex = index;
       if (_currentIndex == 0) {
-        print('go to home');
         Navigator.pushNamed(context, '/');
       } else if (_currentIndex == 1) {
-        print('go to heart');
         Navigator.pushNamed(context, '/wish');
       } else if (_currentIndex == 2) {
-        print('go to profile');
         Navigator.pushNamed(context, '/profile');
       }
     });
@@ -45,23 +56,12 @@ class _DetailPageState extends State<DetailPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    final arguments = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;
+    final arguments =
+    ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;
     if (arguments != null) {
       docId = arguments['docId'];
-      print("docId: $docId");
     }
   }
-
-  // @override
-  // void didChangeDependencies() {
-  //   super.didChangeDependencies();
-
-  //   final Map arguments = ModalRoute.of(context)?.settings.arguments as Map;
-  //   if (arguments != null) {
-  //     docId = arguments["docID"] as String;
-  //     print("===> docId:" + docId);
-  //   }
-  // }
 
   bool isValid = true;
 
@@ -98,8 +98,33 @@ class _DetailPageState extends State<DetailPage> {
                   likeUser?.add(element);
                 }
               });
-              print("likeUser: " + likeUser.toString());
             } on StateError catch (e) {}
+
+            if (snapshot.data!["location"].compareTo("student") == 0) {
+              _markers.add(Marker(
+                  markerId: MarkerId("1"),
+                  draggable: true,
+                  position: LatLng(student[0], student[1])));
+              _center = LatLng(student[0], student[1]);
+            } else if (snapshot.data!["location"].compareTo("chapel") == 0) {
+              _markers.add(Marker(
+                  markerId: MarkerId("1"),
+                  draggable: true,
+                  position: LatLng(chapel[0], chapel[1])));
+              _center = LatLng(chapel[0], chapel[1]);
+            } else if (snapshot.data!["location"].compareTo("yuya") == 0) {
+              _markers.add(Marker(
+                  markerId: MarkerId("1"),
+                  draggable: true,
+                  position: LatLng(yuya[0], yuya[1])));
+              _center = LatLng(yuya[0], yuya[1]);
+            } else {
+              _markers.add(Marker(
+                  markerId: MarkerId("1"),
+                  draggable: true,
+                  position: LatLng(e1[0], e1[1])));
+              _center = LatLng(e1[0], e1[1]);
+            }
             return Scaffold(
               appBar: AppBar(
                 backgroundColor: Colors.white,
@@ -112,176 +137,262 @@ class _DetailPageState extends State<DetailPage> {
                     Navigator.pop(context);
                   },
                 ),
+                actions: <Widget>[
+                  IconButton(
+                    icon: const Icon(
+                      Icons.create,
+                      semanticLabel: 'modify',
+                    ),
+                    onPressed: () {
+                      if (doc['owner']
+                          .compareTo("${_auth.currentUser!.uid}") ==
+                          0) {
+                        Navigator.pushNamed(
+                          context,
+                          '/edit',
+                          arguments: {'docId': doc.id, 'docName': doc['name']},
+                        );
+                      }
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.delete,
+                      semanticLabel: 'delete',
+                    ),
+                    onPressed: () {
+                      if (doc['owner']
+                          .compareTo("${_auth.currentUser!.uid}") ==
+                          0) {
+                        Navigator.pop(context);
+                        Future.delayed(Duration(milliseconds: 500), () {
+                          FirebaseFirestore.instance
+                              .collection('product')
+                              .doc(docId)
+                              .delete();
+
+                          final addCollection = FirebaseFirestore
+                              .instance
+                              .collection("user")
+                              .doc(
+                              _auth.currentUser!.displayName.toString());
+                          String sName = doc['name'];
+                          addCollection.update({
+                            'addlist': FieldValue.arrayRemove([sName])
+                          });
+                        });
+                      }
+                    },
+                  ),
+                ],
               ),
               body: Padding(
-                padding: EdgeInsets.all(10),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  padding: EdgeInsets.all(10),
+                  child: ListView(
                     children: [
-                      Stack(
-                        children: [
-                          Container(
-                              width: 400,
-                              height: 100,
-                              child: FutureBuilder(
-                                future: getIamge('images/${doc["name"]}'),
-                                builder:
-                                    (context, AsyncSnapshot<String> snapshot) {
-                                  if (snapshot.hasData) {
-                                    return Image.network(snapshot.data!);
-                                  } else if (snapshot.hasError) {
-                                    return Text('Error: ${snapshot.error}');
-                                  } else {
-                                    return Image.asset(
-                                      'assets/logo.png',
-                                      fit: BoxFit.fill,
-                                      width: 800,
-                                    );
-                                  }
-                                },
-                              )),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              IconButton(
-                                  padding: const EdgeInsets.all(0),
-                                  alignment: Alignment.centerRight,
-                                  icon:
-                                  likeUser!.contains(_auth.currentUser!.uid)
-                                      ? const Icon(Icons.favorite)
-                                      : const Icon(Icons.favorite_border),
-                                  color: Colors.red,
-                                  onPressed: () {
-                                    if (likeUser!.contains(
-                                        "${_auth.currentUser!.uid}")) {
-                                      isValid = false;
-                                      print("isValid: ${isValid}");
-                                    }
-                                    if (isValid) {
-                                      FirebaseFirestore.instance
-                                          .collection('product')
-                                          .doc(docId)
-                                          .update({
-                                        'likeUser': FieldValue.arrayUnion([
-                                          _auth.currentUser!.uid.toString()
-                                        ]),
-                                      });
-
-                                      FirebaseFirestore.instance
-                                          .collection('user')
-                                          .doc(_auth.currentUser!.displayName.toString())
-                                          .update({
-                                        'wishlist': FieldValue.arrayUnion([doc["name"]]),
-                                      });
-
-                                      const snackBar = SnackBar(
-                                        content: Text('I LIKE IT!'),
-                                      );
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(snackBar);
-                                      isValid = false;
-                                    } else {
-                                      final Reference = FirebaseFirestore
-                                          .instance
-                                          .collection("user")
-                                          .doc(_auth.currentUser!.displayName.toString());
-                                      String sName = doc['name'];
-
-                                      Reference.update({
-                                        'wishlist': FieldValue.arrayRemove([sName])
-                                      });
-                                      print('♥♥♥♥♥♥♥♥♥♥︎$docId');
-
-                                      final ProductReference = FirebaseFirestore
-                                          .instance
-                                          .collection("product")
-                                          .doc(docId);
-                                      String pName =  _auth.currentUser!.uid.toString();
-                                      print('♥♥♥♥♥♥♥♥♥!!!!!!︎$pName');
-
-                                      ProductReference.update({
-                                        'likeUser': FieldValue.arrayRemove([pName])
-                                      });
-                                      Navigator.pop(context);
-                                    }
-                                  }),
-                            ],
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 40),
-                      Text(doc['category'],
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                              color: Colors.grey)),
-                      Text(doc['name'],
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          )),
-                      Text("${doc['price']}",
-                          style: TextStyle(
-                            fontSize: 15,
-                          )),
-                      SizedBox(height: 20),
-                      Container(
-                        height: 80,
-                        color: Colors.grey[200],
-                        child: Stack(
+                      Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            InkWell(
-                              onTap: () {
-                                Navigator.pushNamed(context, '/donate');
-                              },
-                              child: Column(
+                            Stack(
+                              children: [
+                                Container(
+                                    width: 400,
+                                    height: 100,
+                                    child: FutureBuilder(
+                                      future: getIamge('images/${doc["name"]}'),
+                                      builder: (context,
+                                          AsyncSnapshot<String> snapshot) {
+                                        if (snapshot.hasData) {
+                                          return Image.network(snapshot.data!);
+                                        } else if (snapshot.hasError) {
+                                          return Text(
+                                              'Error: ${snapshot.error}');
+                                        } else {
+                                          return Image.asset(
+                                            'assets/logo.png',
+                                            fit: BoxFit.fill,
+                                            width: 800,
+                                          );
+                                        }
+                                      },
+                                    )),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    IconButton(
+                                        padding: const EdgeInsets.all(0),
+                                        alignment: Alignment.centerRight,
+                                        icon: likeUser!.contains(
+                                            _auth.currentUser!.uid)
+                                            ? const Icon(Icons.favorite)
+                                            : const Icon(Icons.favorite_border),
+                                        color: Colors.red,
+                                        onPressed: () {
+                                          if (likeUser!.contains(
+                                              "${_auth.currentUser!.uid}")) {
+                                            isValid = false;
+                                          }
+                                          if (isValid) {
+                                            FirebaseFirestore.instance
+                                                .collection('product')
+                                                .doc(docId)
+                                                .update({
+                                              'likeUser':
+                                              FieldValue.arrayUnion([
+                                                _auth.currentUser!.uid
+                                                    .toString()
+                                              ]),
+                                            });
+
+                                            FirebaseFirestore.instance
+                                                .collection('user')
+                                                .doc(_auth
+                                                .currentUser!.displayName
+                                                .toString())
+                                                .update({
+                                              'wishlist': FieldValue.arrayUnion(
+                                                  [doc["name"]]),
+                                            });
+
+                                            const snackBar = SnackBar(
+                                              content: Text('I LIKE IT!'),
+                                            );
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(snackBar);
+                                            isValid = false;
+                                          } else {
+                                            final Reference = FirebaseFirestore
+                                                .instance
+                                                .collection("user")
+                                                .doc(_auth
+                                                .currentUser!.displayName
+                                                .toString());
+                                            String sName = doc['name'];
+
+                                            Reference.update({
+                                              'wishlist':
+                                              FieldValue.arrayRemove(
+                                                  [sName])
+                                            });
+
+                                            final ProductReference =
+                                            FirebaseFirestore.instance
+                                                .collection("product")
+                                                .doc(docId);
+                                            String pName = _auth
+                                                .currentUser!.uid
+                                                .toString();
+
+                                            ProductReference.update({
+                                              'likeUser':
+                                              FieldValue.arrayRemove(
+                                                  [pName])
+                                            });
+                                            Navigator.pop(context);
+                                          }
+                                        }),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 40),
+                            Text(doc['category'],
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                    color: Colors.grey)),
+                            Text(doc['name'],
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                )),
+                            Text("${doc['price']}",
+                                style: TextStyle(
+                                  fontSize: 15,
+                                )),
+                            SizedBox(height: 20),
+                            Container(
+                              height: 80,
+                              color: Colors.grey[200],
+                              child: Stack(
                                 children: [
-                                  Padding(
-                                    padding:
-                                    EdgeInsets.fromLTRB(20, 10, 20, 10),
-                                    child: Row(
+                                  InkWell(
+                                    onTap: () {
+                                      Navigator.pushNamed(context, '/donate');
+                                    },
+                                    child: Column(
                                       children: [
-                                        Icon(Icons.location_on),
-                                        Text('거래 희망 장소',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 17,
-                                            )),
-                                        SizedBox(width: 10),
-                                        Text(doc['location']),
+                                        Padding(
+                                          padding: EdgeInsets.fromLTRB(
+                                              20, 10, 20, 10),
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.location_on),
+                                              Text('거래 희망 장소',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 17,
+                                                  )),
+                                              SizedBox(width: 10),
+                                              Text(doc['location']),
+                                            ],
+                                          ),
+                                        ),
+                                        Text(doc['url']),
                                       ],
                                     ),
                                   ),
-                                  Text(doc['url']),
                                 ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      Text('Details',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          )),
-                      SizedBox(height: 5),
-                      Text(doc['detail'],
-                          style: TextStyle(color: Colors.black45)),
-                      SizedBox(height: 50),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          ElevatedButton(
-                              onPressed: () {},
-                              child: Text('Buy Now', style: TextStyle(color: Colors.black)),
-                              style: ElevatedButton.styleFrom(
-                                primary: Colors.amber,
-                              )),
-                        ],
-                      )
-                    ]),
-              ),
+                            SizedBox(height: 20),
+                            Text('Details',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                )),
+                            SizedBox(height: 5),
+                            Text(doc['detail'],
+                                style: TextStyle(color: Colors.black45)),
+                            SizedBox(height: 40),
+                            Text('위치',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                )),
+                            SizedBox(height: 10),
+                            Container(
+                              width: 400,
+                              height: 300,
+                              child: GoogleMap(
+                                onMapCreated: _onMapCreated,
+                                markers: Set.from(_markers),
+                                initialCameraPosition: CameraPosition(
+                                  target: _center,
+                                  zoom: 16.5,
+                                ),
+                                myLocationButtonEnabled: false,
+                              ),
+                            ),
+                            SizedBox(height: 50),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.pushNamed(context, '/pay',
+                                          arguments: {'docId': docId});
+                                    },
+                                    child: Text('Buy Now',
+                                        style: TextStyle(color: Colors.black)),
+                                    style: ElevatedButton.styleFrom(
+                                      primary: Colors.amber,
+                                    )),
+                              ],
+                            )
+                          ]),
+                    ],
+                  )),
               bottomNavigationBar: BottomNavigationBar(
                 currentIndex: _currentIndex,
                 onTap: _onItemTapped, // 항목을 눌렀을 때 호출될 콜백 함수
